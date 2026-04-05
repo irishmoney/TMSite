@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trey McEntee</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --white: #ffffff; --off: #f7f4ef; --ink: #1c1c1c; --sky: #d4eaf7; --lime: #d6f0c2; --coral: #ffd4c2; --yellow: #fef3b0; --muted: #888; --border: #e0dcd4; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--white); color: var(--ink); overflow-x: hidden; }
+
+    nav { position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 2px solid var(--ink); display: flex; align-items: stretch; height: 60px; }
+    .nav-brand { display: flex; align-items: center; padding: 0 2rem; border-right: 2px solid var(--ink); text-decoration: none; }
+    .nav-brand-text { font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 700; color: var(--ink); }
+    .nav-links { display: flex; align-items: stretch; list-style: none; flex: 1; }
+    .nav-links li { border-right: 1px solid var(--border); }
+    .nav-links a { display: flex; align-items: center; padding: 0 1.4rem; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--muted); text-decoration: none; height: 100%; transition: background 0.2s, color 0.2s; }
+    .nav-links a:hover { background: var(--ink); color: var(--white); }
+    .nav-social-bar { display: flex; align-items: stretch; border-left: 2px solid var(--ink); }
+    .nav-social-bar a { display: flex; align-items: center; padding: 0 1.2rem; color: var(--ink); border-left: 1px solid var(--border); transition: background 0.2s, color 0.2s; }
+    .nav-social-bar a:first-child { border-left: none; }
+    .nav-social-bar a:hover { background: var(--ink); color: var(--white); }
+
+    .hero { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 60px); border-bottom: 2px solid var(--ink); }
+    .hero-left { padding: 4rem 3.5rem; display: flex; flex-direction: column; justify-content: space-between; border-right: 2px solid var(--ink); background: var(--yellow); }
+    .hero-date { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .hero-vol { display: inline-block; background: var(--ink); color: var(--white); font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 600; padding: 0.3rem 0.8rem; margin-bottom: 1.5rem; }
+    .hero h1 { font-family: 'Fraunces', serif; font-size: clamp(4rem, 10vw, 8rem); font-weight: 700; line-height: 0.9; letter-spacing: -0.03em; margin-bottom: 1.5rem; }
+    .hero-em { font-style: italic; font-weight: 300; }
+    .hero-tagline { font-size: 1rem; line-height: 1.7; color: #444; max-width: 340px; }
+    .hero-topics { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .pill { display: inline-block; padding: 0.35rem 0.9rem; border-radius: 100px; border: 1.5px solid var(--ink); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; cursor: default; transition: all 0.2s; }
+    .pill:hover { background: var(--ink); color: var(--white); }
+    .hero-right { display: grid; grid-template-rows: 1fr 1fr; }
+    .hero-photo { background: var(--sky); display: flex; align-items: center; justify-content: center; border-bottom: 2px solid var(--ink); min-height: 260px; position: relative; overflow: hidden; }
+    .hero-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; transition: transform 0.5s; }
+    .hero-photo:hover img { transform: scale(1.03); }
+    .hero-intro { padding: 2.5rem; background: var(--coral); display: flex; flex-direction: column; justify-content: center; }
+    .hero-intro-label { font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; color: var(--muted); margin-bottom: 0.8rem; }
+    .hero-intro p { font-family: 'Fraunces', serif; font-style: italic; font-size: 1.15rem; line-height: 1.7; color: #333; }
+
+    .section-header { display: flex; align-items: center; border-bottom: 2px solid var(--ink); height: 52px; padding: 0 2rem; gap: 1.5rem; background: var(--white); }
+    .section-num { font-family: 'Fraunces', serif; font-size: 0.85rem; font-style: italic; color: var(--muted); }
+    .section-name { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+    .section-desc-inline { font-size: 0.8rem; color: var(--muted); margin-left: auto; font-style: italic; }
+
+    .grid-strip { display: grid; border-bottom: 2px solid var(--ink); }
+    .col3 { grid-template-columns: repeat(3, 1fr); }
+    .col4 { grid-template-columns: repeat(4, 1fr); }
+    .col-asym { grid-template-columns: 2fr 1fr 1fr; }
+    .col-asym2 { grid-template-columns: 1fr 2fr 1fr 1fr; }
+
+    .grid-cell { border-right: 2px solid var(--ink); position: relative; overflow: hidden; min-height: 320px; display: flex; align-items: center; justify-content: center; }
+    .grid-cell:last-child { border-right: none; }
+    .grid-cell.tall { min-height: 420px; }
+    .grid-cell img { transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .grid-cell:hover img { transform: scale(1.04); }
+    .cell-label { position: absolute; bottom: 1rem; left: 1rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; background: var(--white); padding: 0.3rem 0.7rem; opacity: 0; transition: opacity 0.2s; }
+    .grid-cell:hover .cell-label { opacity: 1; }
+
+    .social-section { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 2px solid var(--ink); }
+    .social-block { padding: 4rem 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; text-decoration: none; color: var(--ink); border-right: 2px solid var(--ink); transition: background 0.2s; }
+    .social-block:last-child { border-right: none; }
+    .social-block.ig:hover { background: #fce4ec; }
+    .social-block.fb:hover { background: #e3f2fd; }
+    .social-block-tag { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 700; border: 1.5px solid currentColor; padding: 0.25rem 0.7rem; width: fit-content; }
+    .social-block h3 { font-family: 'Fraunces', serif; font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+    .social-block-handle { font-size: 0.85rem; color: var(--muted); }
+    .social-block-arrow { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-top: auto; }
+
+    .about-grid { display: grid; grid-template-columns: 1fr 2fr; border-bottom: 2px solid var(--ink); }
+    .about-left { border-right: 2px solid var(--ink); background: var(--lime); min-height: 460px; position: relative; overflow: hidden; }
+    .about-left img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+    .about-right { padding: 3.5rem; display: flex; flex-direction: column; justify-content: center; }
+    .about-right h2 { font-family: 'Fraunces', serif; font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1; margin-bottom: 1.5rem; }
+    .about-right p { font-size: 1rem; color: #555; line-height: 1.8; margin-bottom: 0.8rem; max-width: 480px; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; }
+
+    footer { display: flex; align-items: stretch; height: 54px; border-top: 2px solid var(--ink); }
+    .footer-brand { display: flex; align-items: center; padding: 0 2rem; border-right: 2px solid var(--ink); font-family: 'Fraunces', serif; font-weight: 700; font-size: 1rem; }
+    .footer-copy { display: flex; align-items: center; padding: 0 1.5rem; font-size: 0.72rem; color: var(--muted); }
+    .footer-links { display: flex; align-items: stretch; margin-left: auto; }
+    .footer-links a { display: flex; align-items: center; padding: 0 1.5rem; border-left: 2px solid var(--ink); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); text-decoration: none; transition: background 0.2s, color 0.2s; }
+    .footer-links a:hover { background: var(--ink); color: var(--white); }
+
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s, transform 0.6s; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-left { border-right: none; border-bottom: 2px solid var(--ink); }
+      .col3, .col4, .col-asym, .col-asym2 { grid-template-columns: 1fr 1fr; }
+      .grid-cell { border-right: none; border-bottom: 2px solid var(--ink); min-height: 200px; }
+      .grid-cell:nth-child(odd) { border-right: 2px solid var(--ink); }
+      .social-section { grid-template-columns: 1fr; }
+      .social-block { border-right: none; border-bottom: 2px solid var(--ink); }
+      .about-grid { grid-template-columns: 1fr; }
+      .about-left { min-height: 300px; border-right: none; border-bottom: 2px solid var(--ink); }
+      .about-right { padding: 2rem 1.5rem; }
+      footer { height: auto; flex-direction: column; padding: 1rem; gap: 0.5rem; }
+      .footer-links { margin-left: 0; } .footer-links a { border-left: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="#"><span class="nav-brand-text">Trey McEntee</span></a>
+  <ul class="nav-links">
+    <li><a href="#travel">Travel</a></li>
+    <li><a href="#food">Food</a></li>
+    <li><a href="#hobbies">Hobbies</a></li>
+    <li><a href="#family">Family</a></li>
+    <li><a href="#about">About</a></li>
+  </ul>
+  <div class="nav-social-bar">
+    <a href="https://www.instagram.com/treymcentee/" target="_blank" aria-label="Instagram">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+    </a>
+    <a href="https://www.facebook.com/trey.mcentee" target="_blank" aria-label="Facebook">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+    </a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-left reveal">
+    <span class="hero-date">Est. 2026</span>
+    <div>
+      <span class="hero-vol">Personal Blog</span>
+      <h1>Trey<br><span class="hero-em">McEntee</span></h1>
+      <p class="hero-tagline">A photo blog about the things I love — travel, food, hobbies, and the people who make it all worth it.</p>
+    </div>
+    <div class="hero-topics">
+      <span class="pill">Travel</span><span class="pill">Food</span>
+      <span class="pill">Hobbies</span><span class="pill">Family</span>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-photo reveal">
+      <img src="photos/imgi_16_590424176_18547304983061239_6424957706554086807_n.jpg" alt="The McEntee Family" />
+    </div>
+    <div class="hero-intro reveal">
+      <p class="hero-intro-label">A note from Trey</p>
+      <p>"Hey — welcome to my little corner of the internet. No agenda here, just good memories and the moments worth keeping."</p>
+    </div>
+  </div>
+</section>
+
+<div id="travel">
+  <div class="section-header reveal"><span class="section-num">№ 01</span><h2 class="section-name">Travel</h2><span class="section-desc-inline">Adventures worth documenting</span></div>
+  <div class="grid-strip col-asym reveal">
+        <div class="grid-cell tall" style="background:#d4eaf7;">
+      <img src="photos/imgi_13_656279539_18573377233061239_1373869961433265769_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Trey & Alison — Miami rooftop nights" loading="lazy" />
+      <span class="cell-label">Trey & Alison — Miami rooftop nights</span>
+    </div>
+        <div class="grid-cell " style="background:#ffd4c2;">
+      <img src="photos/imgi_43_655576137_18041235596546853_7677367260550340613_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Sunset in the Florida Keys" loading="lazy" />
+      <span class="cell-label">Sunset in the Florida Keys</span>
+    </div>
+        <div class="grid-cell " style="background:#d4eaf7;">
+      <img src="photos/imgi_50_648354974_17938440312178065_5105164106267396219_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 35%;" alt="Stanley Cup Playoffs with Alison" loading="lazy" />
+      <span class="cell-label">Stanley Cup Playoffs with Alison</span>
+    </div>
+  </div>
+</div>
+
+<div id="food">
+  <div class="section-header reveal"><span class="section-num">№ 02</span><h2 class="section-name">Food</h2><span class="section-desc-inline">If I ate it and loved it, it's here</span></div>
+  <div class="grid-strip col4 reveal">
+        <div class="grid-cell " style="background:#fef3b0;">
+      <img src="photos/imgi_45_455320231_813470237565491_9085228667472091695_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Date night — Trey, Alison & baby Cade" loading="lazy" />
+      <span class="cell-label">Date night — Trey, Alison & baby Cade</span>
+    </div>
+        <div class="grid-cell " style="background:#fef3b0;">
+      <img src="photos/imgi_17_588022132_18545559829061239_1669584181492503531_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Christmas brunch — the whole family" loading="lazy" />
+      <span class="cell-label">Christmas brunch — the whole family</span>
+    </div>
+        <div class="grid-cell " style="background:#ffd4c2;">
+      <img src="photos/imgi_35_657746181_18086763563343778_5380122563740186697_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Sunday best — Cade's baptism" loading="lazy" />
+      <span class="cell-label">Sunday best — Cade's baptism</span>
+    </div>
+        <div class="grid-cell " style="background:#d4eaf7;">
+      <img src="photos/imgi_24_553536214_18530220931061239_3163759333526066692_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Family getaway — the Keys" loading="lazy" />
+      <span class="cell-label">Family getaway — the Keys</span>
+    </div>
+  </div>
+</div>
+
+<div id="hobbies">
+  <div class="section-header reveal"><span class="section-num">№ 03</span><h2 class="section-name">Hobbies</h2><span class="section-desc-inline">The stuff I do just because I love it</span></div>
+  <div class="grid-strip col-asym2 reveal">
+        <div class="grid-cell " style="background:#d4eaf7;">
+      <img src="photos/imgi_41_465493494_1724296255058459_6118718285963564124_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="F1 race day — future champion 🏎️" loading="lazy" />
+      <span class="cell-label">F1 race day — future champion 🏎️</span>
+    </div>
+        <div class="grid-cell tall" style="background:#ffd4c2;">
+      <img src="photos/imgi_20_573295153_18538440892061239_8072056838577262162_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="80s Halloween — the whole McEntee crew" loading="lazy" />
+      <span class="cell-label">80s Halloween — the whole McEntee crew</span>
+    </div>
+        <div class="grid-cell " style="background:#fef3b0;">
+      <img src="photos/imgi_38_655235182_18154326112453769_991650609853999689_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Cade's cowboy birthday bash" loading="lazy" />
+      <span class="cell-label">Cade's cowboy birthday bash</span>
+    </div>
+        <div class="grid-cell " style="background:#ffd4c2;">
+      <img src="photos/imgi_15_623403825_18555258979061239_6938026719263382094_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Fair day with the whole crew" loading="lazy" />
+      <span class="cell-label">Fair day with the whole crew</span>
+    </div>
+  </div>
+</div>
+
+<div id="family">
+  <div class="section-header reveal"><span class="section-num">№ 04</span><h2 class="section-name">Family</h2><span class="section-desc-inline">Everything else is just context</span></div>
+  <div class="grid-strip col3 reveal">
+        <div class="grid-cell " style="background:#d6f0c2;">
+      <img src="photos/imgi_36_655258055_18058708937414979_7455908324428563218_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Beach days with Cade & the pup" loading="lazy" />
+      <span class="cell-label">Beach days with Cade & the pup</span>
+    </div>
+        <div class="grid-cell tall" style="background:#d6f0c2;">
+      <img src="photos/imgi_16_590424176_18547304983061239_6424957706554086807_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;" alt="Christmas on the beach — Trey, Alison, Cade & Taegan" loading="lazy" />
+      <span class="cell-label">Christmas on the beach — Trey, Alison, Cade & Taegan</span>
+    </div>
+        <div class="grid-cell " style="background:#d6f0c2;">
+      <img src="photos/imgi_27_534751605_18522245692061239_6638101384217405753_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Welcoming baby Taegan home 🤍" loading="lazy" />
+      <span class="cell-label">Welcoming baby Taegan home 🤍</span>
+    </div>
+        <div class="grid-cell " style="background:#d6f0c2;">
+      <img src="photos/imgi_39_655230011_18072837827550984_5647026243636883638_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Christmas mini shoot — Cade & the pup" loading="lazy" />
+      <span class="cell-label">Christmas mini shoot — Cade & the pup</span>
+    </div>
+        <div class="grid-cell " style="background:#fef3b0;">
+      <img src="photos/imgi_34_653945918_17908936275185253_1108870038073427412_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Baby #2 on the way — Taegan's first photo" loading="lazy" />
+      <span class="cell-label">Baby #2 on the way — Taegan's first photo</span>
+    </div>
+        <div class="grid-cell " style="background:#d4eaf7;">
+      <img src="photos/imgi_23_568201215_18535739449061239_3041149111725856104_n.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" alt="Golden hour on the water — the whole family" loading="lazy" />
+      <span class="cell-label">Golden hour on the water — the whole family</span>
+    </div>
+  </div>
+</div>
+
+<div class="social-section reveal">
+  <a class="social-block ig" href="https://www.instagram.com/treymcentee/" target="_blank">
+    <span class="social-block-tag">Instagram</span>
+    <h3>Follow Along</h3>
+    <p class="social-block-handle">@treymcentee</p>
+    <span class="social-block-arrow">Open Instagram <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+  </a>
+  <a class="social-block fb" href="https://www.facebook.com/trey.mcentee" target="_blank">
+    <span class="social-block-tag">Facebook</span>
+    <h3>Connect With Me</h3>
+    <p class="social-block-handle">Trey McEntee</p>
+    <span class="social-block-arrow">Open Facebook <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+  </a>
+</div>
+
+<div class="about-grid" id="about">
+  <div class="about-left reveal">
+    <img src="photos/trey_solo.jpg" alt="Trey McEntee" />
+  </div>
+  <div class="about-right reveal">
+    <span class="section-num">About</span>
+    <h2>Hey, I'm<br><em>Trey.</em></h2>
+    <p>This is my little corner of the internet — no agenda, no algorithm. Just the moments, places, plates, and people that make up my life.</p>
+    <p>Husband to Alison, dad to Cade &amp; Taegan. Based in South Florida, living for the good moments.</p>
+    <div class="pill-row">
+      <span class="pill">Travel</span><span class="pill">Food</span>
+      <span class="pill">Family</span><span class="pill">Hobbies</span><span class="pill">Good Times</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="footer-brand">Trey McEntee</span>
+  <span class="footer-copy">© 2026 All rights reserved</span>
+  <div class="footer-links">
+    <a href="https://www.instagram.com/treymcentee/" target="_blank">Instagram</a>
+    <a href="https://www.facebook.com/trey.mcentee" target="_blank">Facebook</a>
+  </div>
+</footer>
+
+<script>
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 80); obs.unobserve(e.target); } });
+  }, { threshold: 0.08 });
+  reveals.forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
