@@ -131,6 +131,11 @@ def format_time_ago(published_at: datetime, now: datetime) -> str:
     return f"{days}d ago"
 
 
+def esc(text: str) -> str:
+    """Escape special HTML characters in dynamic content."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def build_message(all_videos: list[dict], now: datetime) -> str:
     cutoff_24h = now - timedelta(hours=24)
     cutoff_48h = now - timedelta(hours=48)
@@ -141,60 +146,60 @@ def build_message(all_videos: list[dict], now: datetime) -> str:
     videos_7d = [v for v in all_videos if v["published_at"] >= cutoff_7d]
 
     lines = []
-    lines.append("📺 *YouTube Disaster Channel Daily Report*")
-    lines.append(f"_{now.strftime('%A, %B %-d %Y — %I:%M %p EST')}_")
+    lines.append("📺 <b>YouTube Disaster Channel Daily Report</b>")
+    lines.append(f"<i>{now.strftime('%A, %B %-d %Y — %I:%M %p UTC')}</i>")
     lines.append("")
 
     # ── Section 1: New videos in last 24 h ─────────────────────────────────
-    lines.append("*🆕 New Videos (Last 24 Hours)*")
+    lines.append("🆕 <b>New Videos (Last 24 Hours)</b>")
     if videos_24h:
         for v in sorted(videos_24h, key=lambda x: x["published_at"], reverse=True):
             ago = format_time_ago(v["published_at"], now)
             lines.append(
-                f"• [{v['title']}]({v['url']})\n"
-                f"  _{v['channel']}_ · {ago}"
+                f'• <a href="{v["url"]}">{esc(v["title"])}</a>\n'
+                f'  <i>{esc(v["channel"])}</i> · {ago}'
             )
     else:
-        lines.append("_No new videos in the last 24 hours._")
+        lines.append("<i>No new videos in the last 24 hours.</i>")
     lines.append("")
 
     # ── Section 2: Top 3 by views — 24 h ───────────────────────────────────
-    lines.append("*📈 Top 3 by Views — Last 24 Hours*")
+    lines.append("📈 <b>Top 3 by Views — Last 24 Hours</b>")
     top_24h = sorted(videos_24h, key=lambda x: x["view_count"], reverse=True)[:3]
     if top_24h:
         for i, v in enumerate(top_24h, 1):
             lines.append(
-                f"{i}\\. [{v['title']}]({v['url']})\n"
-                f"   👁 {format_number(v['view_count'])} · _{v['channel']}_"
+                f'{i}. <a href="{v["url"]}">{esc(v["title"])}</a>\n'
+                f'   👁 {format_number(v["view_count"])} · <i>{esc(v["channel"])}</i>'
             )
     else:
-        lines.append("_No data for this period._")
+        lines.append("<i>No data for this period.</i>")
     lines.append("")
 
     # ── Section 3: Top 3 by views — 48 h ───────────────────────────────────
-    lines.append("*📊 Top 3 by Views — Last 48 Hours*")
+    lines.append("📊 <b>Top 3 by Views — Last 48 Hours</b>")
     top_48h = sorted(videos_48h, key=lambda x: x["view_count"], reverse=True)[:3]
     if top_48h:
         for i, v in enumerate(top_48h, 1):
             lines.append(
-                f"{i}\\. [{v['title']}]({v['url']})\n"
-                f"   👁 {format_number(v['view_count'])} · _{v['channel']}_"
+                f'{i}. <a href="{v["url"]}">{esc(v["title"])}</a>\n'
+                f'   👁 {format_number(v["view_count"])} · <i>{esc(v["channel"])}</i>'
             )
     else:
-        lines.append("_No data for this period._")
+        lines.append("<i>No data for this period.</i>")
     lines.append("")
 
     # ── Section 4: Top 3 by views — 7 days ─────────────────────────────────
-    lines.append("*🏆 Top 3 by Views — Last 7 Days*")
+    lines.append("🏆 <b>Top 3 by Views — Last 7 Days</b>")
     top_7d = sorted(videos_7d, key=lambda x: x["view_count"], reverse=True)[:3]
     if top_7d:
         for i, v in enumerate(top_7d, 1):
             lines.append(
-                f"{i}\\. [{v['title']}]({v['url']})\n"
-                f"   👁 {format_number(v['view_count'])} · _{v['channel']}_"
+                f'{i}. <a href="{v["url"]}">{esc(v["title"])}</a>\n'
+                f'   👁 {format_number(v["view_count"])} · <i>{esc(v["channel"])}</i>'
             )
     else:
-        lines.append("_No data for this period._")
+        lines.append("<i>No data for this period.</i>")
 
     return "\n".join(lines)
 
@@ -204,8 +209,8 @@ def send_telegram(message: str) -> None:
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
-        "parse_mode": "MarkdownV2",
-        "disable_web_page_preview": False,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
     }
     response = requests.post(url, json=payload, timeout=30)
     if not response.ok:
