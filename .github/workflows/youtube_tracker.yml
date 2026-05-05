@@ -2,8 +2,9 @@ name: YouTube Channel Tracker
 
 on:
   schedule:
-    # 9:00 AM EST = 14:00 UTC (accounts for EST = UTC-5)
-    - cron: "0 14 * * *"
+    # 9:00 AM EDT = 13:00 UTC (EDT = UTC-4, Mar–Nov)
+    # Note: fires at 8:00 AM EST during winter (Nov–Mar) when clocks fall back
+    - cron: "0 13 * * *"
   workflow_dispatch: # allow manual trigger from GitHub UI
 
 jobs:
