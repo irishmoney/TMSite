@@ -1,0 +1,30 @@
+name: YouTube Channel Tracker
+
+on:
+  schedule:
+    # 9:00 AM EST = 14:00 UTC (accounts for EST = UTC-5)
+    - cron: "0 14 * * *"
+  workflow_dispatch: # allow manual trigger from GitHub UI
+
+jobs:
+  send-daily-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run YouTube tracker
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python youtube_tracker.py
