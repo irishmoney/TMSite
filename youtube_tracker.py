@@ -21,6 +21,8 @@ CHANNEL_HANDLES = [
     "@LorenzosDisasterForecast",
     "@brokenearthyt",
     "@naturaldisastersuncovered",
+    "@FracturedPlanet1",
+    "@geovarayt",
 ]
 # ─────────────────────────────────────────────────────────────────────────────
 
