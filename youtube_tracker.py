@@ -13,12 +13,16 @@ YOUTUBE_API_KEY = os.environ["YOUTUBE_API_KEY"]
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD OR REMOVE CHANNELS HERE — one @handle per line
+# ─────────────────────────────────────────────────────────────────────────────
 CHANNEL_HANDLES = [
     "@CrisisRadar1",
     "@LorenzosDisasterForecast",
     "@brokenearthyt",
     "@naturaldisastersuncovered",
 ]
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 def build_youtube():
@@ -26,7 +30,6 @@ def build_youtube():
 
 
 def resolve_channel_id(youtube, handle: str) -> tuple[str, str]:
-    """Return (channel_id, display_name) for a @handle."""
     response = youtube.search().list(
         part="snippet",
         q=handle,
@@ -50,7 +53,7 @@ def get_uploads_playlist_id(youtube, channel_id: str) -> str:
 
 
 def get_playlist_videos(youtube, playlist_id: str, since: datetime) -> list[dict]:
-    """Fetch all video stubs from a playlist published after `since`."""
+    """Fetch video stubs from a playlist published after `since`."""
     videos = []
     page_token = None
 
@@ -85,8 +88,8 @@ def get_playlist_videos(youtube, playlist_id: str, since: datetime) -> list[dict
     return videos
 
 
-def enrich_with_view_counts(youtube, videos: list[dict]) -> list[dict]:
-    """Add view_count to each video dict (batch requests of 50)."""
+def enrich_with_stats(youtube, videos: list[dict]) -> list[dict]:
+    """Add view_count to each video."""
     if not videos:
         return videos
 
@@ -119,84 +122,51 @@ def format_number(n: int) -> str:
     return str(n)
 
 
-def format_time_ago(published_at: datetime, now: datetime) -> str:
-    delta = now - published_at
-    hours = int(delta.total_seconds() // 3600)
-    if hours < 1:
-        minutes = int(delta.total_seconds() // 60)
-        return f"{minutes}m ago"
-    if hours < 24:
-        return f"{hours}h ago"
-    days = hours // 24
-    return f"{days}d ago"
+def to_et(dt: datetime) -> tuple[datetime, str]:
+    """Convert UTC datetime to Eastern Time. Returns (local_dt, label)."""
+    offset_hours = -4 if 3 <= dt.month <= 11 else -5
+    label = "EDT" if offset_hours == -4 else "EST"
+    return dt.astimezone(timezone(timedelta(hours=offset_hours))), label
 
 
 def esc(text: str) -> str:
-    """Escape special HTML characters in dynamic content."""
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def build_message(all_videos: list[dict], now: datetime) -> str:
     cutoff_24h = now - timedelta(hours=24)
-    cutoff_48h = now - timedelta(hours=48)
-    cutoff_7d = now - timedelta(days=7)
-
     videos_24h = [v for v in all_videos if v["published_at"] >= cutoff_24h]
-    videos_48h = [v for v in all_videos if v["published_at"] >= cutoff_48h]
-    videos_7d = [v for v in all_videos if v["published_at"] >= cutoff_7d]
+
+    now_et, et_label = to_et(now)
 
     lines = []
-    lines.append("📺 <b>YouTube Disaster Channel Daily Report</b>")
-    lines.append(f"<i>{now.strftime('%A, %B %-d %Y — %I:%M %p UTC')}</i>")
+    lines.append("\U0001f4fa <b>YouTube Disaster Channel Daily Report</b>")
+    lines.append(f"<i>{now_et.strftime('%A, %B %-d %Y — %I:%M %p')} {et_label}</i>")
+    lines.append(f"<i>Tracking {len(CHANNEL_HANDLES)} channels</i>")
     lines.append("")
 
-    # ── Section 1: New videos in last 24 h ─────────────────────────────────
-    lines.append("🆕 <b>New Videos (Last 24 Hours)</b>")
+    # ── New videos in last 24 h (sorted by publish time, newest first) ──
+    lines.append("\U0001f195 <b>New Videos (Last 24 Hours)</b>")
     if videos_24h:
         for v in sorted(videos_24h, key=lambda x: x["published_at"], reverse=True):
-            ago = format_time_ago(v["published_at"], now)
+            pub_et, pub_label = to_et(v["published_at"])
+            pub_str = pub_et.strftime("%-I:%M %p") + f" {pub_label}"
             lines.append(
                 f'• <a href="{v["url"]}">{esc(v["title"])}</a>\n'
-                f'  <i>{esc(v["channel"])}</i> · {ago}'
+                f'  <i>{esc(v["channel"])}</i> · Published {pub_str} · \U0001f441 {format_number(v["view_count"])}'
             )
     else:
         lines.append("<i>No new videos in the last 24 hours.</i>")
     lines.append("")
 
-    # ── Section 2: Top 3 by views — 24 h ───────────────────────────────────
-    lines.append("📈 <b>Top 3 by Views — Last 24 Hours</b>")
+    # ── Top 3 by views — 24 h ──
+    lines.append("\U0001f4c8 <b>Top 3 by Views — Last 24 Hours</b>")
     top_24h = sorted(videos_24h, key=lambda x: x["view_count"], reverse=True)[:3]
     if top_24h:
         for i, v in enumerate(top_24h, 1):
             lines.append(
                 f'{i}. <a href="{v["url"]}">{esc(v["title"])}</a>\n'
-                f'   👁 {format_number(v["view_count"])} · <i>{esc(v["channel"])}</i>'
-            )
-    else:
-        lines.append("<i>No data for this period.</i>")
-    lines.append("")
-
-    # ── Section 3: Top 3 by views — 48 h ───────────────────────────────────
-    lines.append("📊 <b>Top 3 by Views — Last 48 Hours</b>")
-    top_48h = sorted(videos_48h, key=lambda x: x["view_count"], reverse=True)[:3]
-    if top_48h:
-        for i, v in enumerate(top_48h, 1):
-            lines.append(
-                f'{i}. <a href="{v["url"]}">{esc(v["title"])}</a>\n'
-                f'   👁 {format_number(v["view_count"])} · <i>{esc(v["channel"])}</i>'
-            )
-    else:
-        lines.append("<i>No data for this period.</i>")
-    lines.append("")
-
-    # ── Section 4: Top 3 by views — 7 days ─────────────────────────────────
-    lines.append("🏆 <b>Top 3 by Views — Last 7 Days</b>")
-    top_7d = sorted(videos_7d, key=lambda x: x["view_count"], reverse=True)[:3]
-    if top_7d:
-        for i, v in enumerate(top_7d, 1):
-            lines.append(
-                f'{i}. <a href="{v["url"]}">{esc(v["title"])}</a>\n'
-                f'   👁 {format_number(v["view_count"])} · <i>{esc(v["channel"])}</i>'
+                f'   \U0001f441 {format_number(v["view_count"])} · <i>{esc(v["channel"])}</i>'
             )
     else:
         lines.append("<i>No data for this period.</i>")
@@ -221,7 +191,7 @@ def send_telegram(message: str) -> None:
 
 def main():
     now = datetime.now(timezone.utc)
-    cutoff = now - timedelta(days=7)  # fetch up to 7 days back
+    cutoff = now - timedelta(hours=24)
 
     youtube = build_youtube()
     all_videos = []
@@ -237,16 +207,8 @@ def main():
         except Exception as exc:
             print(f"  WARNING: failed to fetch {handle}: {exc}", file=sys.stderr)
 
-    print(f"Enriching {len(all_videos)} videos with view counts…")
-    all_videos = enrich_with_view_counts(youtube, all_videos)
-
-    # Convert UTC time to EST for the message header (UTC-5, no DST adjustment needed
-    # since GitHub Actions scheduler is consistent; use a fixed offset for simplicity)
-    est_offset = timedelta(hours=-5)
-    now_est = now + est_offset
-    # Rebuild a timezone-aware datetime for display only
-    est_tz = timezone(est_offset)
-    now_est = now.astimezone(est_tz)
+    print(f"Enriching {len(all_videos)} videos with stats…")
+    all_videos = enrich_with_stats(youtube, all_videos)
 
     message = build_message(all_videos, now)
     print("Sending Telegram message…")
