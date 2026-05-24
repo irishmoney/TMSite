@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-YouTube Disaster channel tracker — daily Telegram digest.
+YouTube Disaster channel tracker — per-channel daily digest.
 """
 
 import os
@@ -12,6 +12,8 @@ import requests
 YOUTUBE_API_KEY = os.environ["YOUTUBE_API_KEY"]
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+
+REPORT_TITLE = "\U0001f4fa YouTube Disaster Channel Daily Report"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ADD OR REMOVE CHANNELS HERE — one @handle per line
@@ -44,40 +46,50 @@ def get_uploads_playlist_id(youtube, channel_id):
     return response["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
 
-def get_playlist_videos(youtube, playlist_id, since):
-    videos = []
+def get_channel_videos(youtube, playlist_id, since_48h):
+    """Return (latest_video, videos_in_48h). latest_video is always set even if older than 48h."""
+    latest = None
+    videos_48h = []
     page_token = None
+
     while True:
         params = dict(part="snippet", playlistId=playlist_id, maxResults=50)
         if page_token:
             params["pageToken"] = page_token
         response = youtube.playlistItems().list(**params).execute()
+
         for item in response.get("items", []):
             snippet = item["snippet"]
             pub_str = snippet.get("publishedAt", "")
             if not pub_str:
                 continue
             published_at = datetime.fromisoformat(pub_str.replace("Z", "+00:00"))
-            if published_at < since:
-                return videos
             video_id = snippet["resourceId"]["videoId"]
-            videos.append({
+            video = {
                 "video_id": video_id,
                 "title": snippet["title"],
                 "channel": snippet["channelTitle"],
                 "published_at": published_at,
                 "url": f"https://www.youtube.com/watch?v={video_id}",
-            })
+                "view_count": 0,
+            }
+            if latest is None:
+                latest = video
+            if published_at >= since_48h:
+                videos_48h.append(video)
+            else:
+                return latest, videos_48h
+
         page_token = response.get("nextPageToken")
         if not page_token:
             break
-    return videos
+
+    return latest, videos_48h
 
 
 def enrich_with_stats(youtube, videos):
     if not videos:
-        return videos
-    enriched = []
+        return
     ids = [v["video_id"] for v in videos]
     for i in range(0, len(ids), 50):
         batch = ids[i: i + 50]
@@ -88,21 +100,20 @@ def enrich_with_stats(youtube, videos):
         }
         for v in videos[i: i + 50]:
             v["view_count"] = stats_map.get(v["video_id"], 0)
-            enriched.append(v)
-    return enriched
 
 
-def views_per_hour(v, now):
-    hours_live = max((now - v["published_at"]).total_seconds() / 3600, 0.5)
-    return v["view_count"] / hours_live
+def vph(v, now):
+    hours = max((now - v["published_at"]).total_seconds() / 3600, 0.5)
+    return v["view_count"] / hours
 
 
-def format_number(n):
+def fmt(n):
+    n = int(n)
     if n >= 1_000_000:
-        return f"{n / 1_000_000:.1f}M"
+        return f"{n/1_000_000:.1f}M"
     if n >= 1_000:
-        return f"{n / 1_000:.1f}K"
-    return str(int(n))
+        return f"{n/1_000:.1f}K"
+    return str(n)
 
 
 def to_et(dt):
@@ -115,43 +126,41 @@ def esc(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def build_message(all_videos, now):
-    cutoff_24h = now - timedelta(hours=24)
-    videos_24h = [v for v in all_videos if v["published_at"] >= cutoff_24h]
+def video_line(v, now):
+    pub_et, pub_label = to_et(v["published_at"])
+    pub_str = pub_et.strftime("%-I:%M %p") + f" {pub_label}"
+    return (
+        f'<a href="{v["url"]}">{esc(v["title"])}</a>\n'
+        f'   {pub_str} · \U0001f441 {fmt(v["view_count"])} · ⚡ {fmt(vph(v, now))}/hr'
+    )
 
+
+def build_message(channel_data, now):
     now_et, et_label = to_et(now)
 
     lines = []
-    lines.append("\U0001f4fa <b>YouTube Disaster Channel Daily Report</b>")
+    lines.append(f"<b>{REPORT_TITLE}</b>")
     lines.append(f"<i>{now_et.strftime('%A, %B %-d %Y — %I:%M %p')} {et_label}</i>")
     lines.append(f"<i>Tracking {len(CHANNEL_HANDLES)} channels</i>")
-    lines.append("")
 
-    lines.append("\U0001f195 <b>New Videos (Last 24 Hours)</b>")
-    if videos_24h:
-        for v in sorted(videos_24h, key=lambda x: views_per_hour(x, now), reverse=True):
-            pub_et, pub_label = to_et(v["published_at"])
-            pub_str = pub_et.strftime("%-I:%M %p") + f" {pub_label}"
-            vph = views_per_hour(v, now)
-            lines.append(
-                f'• <a href="{v["url"]}">{esc(v["title"])}</a>\n'
-                f'  <i>{esc(v["channel"])}</i> · {pub_str} · \U0001f441 {format_number(v["view_count"])} · ⚡ {format_number(vph)}/hr'
-            )
-    else:
-        lines.append("<i>No new videos in the last 24 hours.</i>")
-    lines.append("")
+    for entry in channel_data:
+        name = entry["name"]
+        latest = entry["latest"]
+        best = entry["best_48h"]
 
-    lines.append("\U0001f4c8 <b>Top 3 by Views — Last 24 Hours</b>")
-    top_24h = sorted(videos_24h, key=lambda x: x["view_count"], reverse=True)[:3]
-    if top_24h:
-        for i, v in enumerate(top_24h, 1):
-            vph = views_per_hour(v, now)
-            lines.append(
-                f'{i}. <a href="{v["url"]}">{esc(v["title"])}</a>\n'
-                f'   \U0001f441 {format_number(v["view_count"])} · ⚡ {format_number(vph)}/hr · <i>{esc(v["channel"])}</i>'
-            )
-    else:
-        lines.append("<i>No data for this period.</i>")
+        lines.append("")
+        lines.append(f"━━━ <b>{esc(name)}</b> ━━━")
+
+        if latest is None:
+            lines.append("<i>Could not fetch channel data.</i>")
+            continue
+
+        lines.append(f"\U0001f4cc <b>Latest:</b> {video_line(latest, now)}")
+
+        if best and best["video_id"] != latest["video_id"]:
+            lines.append(f"\U0001f3c6 <b>Best 48h:</b> {video_line(best, now)}")
+        elif best is None:
+            lines.append("<i>No new videos in last 48h</i>")
 
     return "\n".join(lines)
 
@@ -168,22 +177,36 @@ def send_telegram(message):
 
 def main():
     now = datetime.now(timezone.utc)
-    cutoff = now - timedelta(hours=24)
+    since_48h = now - timedelta(hours=48)
     youtube = build_youtube()
-    all_videos = []
+    channel_data = []
+
     for handle in CHANNEL_HANDLES:
         print(f"Fetching {handle}…")
         try:
-            channel_id, _ = resolve_channel_id(youtube, handle)
+            channel_id, channel_name = resolve_channel_id(youtube, handle)
             playlist_id = get_uploads_playlist_id(youtube, channel_id)
-            videos = get_playlist_videos(youtube, playlist_id, since=cutoff)
-            all_videos.extend(videos)
-            print(f"  → {len(videos)} videos found")
+            latest, videos_48h = get_channel_videos(youtube, playlist_id, since_48h)
+
+            # Collect unique videos to enrich
+            to_enrich = {v["video_id"]: v for v in videos_48h}
+            if latest:
+                to_enrich[latest["video_id"]] = latest
+            enrich_with_stats(youtube, list(to_enrich.values()))
+
+            best_48h = max(videos_48h, key=lambda v: v["view_count"]) if videos_48h else None
+
+            channel_data.append({
+                "name": channel_name,
+                "latest": latest,
+                "best_48h": best_48h,
+            })
+            print(f"  → latest: {latest['title'][:50] if latest else 'none'}, 48h videos: {len(videos_48h)}")
         except Exception as exc:
             print(f"  WARNING: failed to fetch {handle}: {exc}", file=sys.stderr)
-    print(f"Enriching {len(all_videos)} videos with stats…")
-    all_videos = enrich_with_stats(youtube, all_videos)
-    message = build_message(all_videos, now)
+            channel_data.append({"name": handle, "latest": None, "best_48h": None})
+
+    message = build_message(channel_data, now)
     print("Sending Telegram message…")
     send_telegram(message)
 
