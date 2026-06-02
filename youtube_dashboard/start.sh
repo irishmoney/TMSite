@@ -25,7 +25,7 @@ pip install -q -r requirements.txt
 echo ""
 echo "======================================"
 echo "  YouTube Analytics Dashboard"
-echo "  Open: http://localhost:5000"
+echo "  Open: http://localhost:8080"
 echo "======================================"
 echo ""
 
