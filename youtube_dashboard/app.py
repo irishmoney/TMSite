@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import tempfile
 import datetime
 import statistics
 from pathlib import Path
@@ -11,24 +12,48 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
 
 # ── Config ──────────────────────────────────────────────────────────────────
-CREDENTIALS_FILE = os.environ.get(
+# On Railway: set YT_CLIENT_SECRET_JSON env var to the full contents of client_secret.json
+# Locally: set YT_CLIENT_SECRET to the file path (falls back to ~/Desktop/client_secret.json)
+_CLIENT_SECRET_JSON = os.environ.get("YT_CLIENT_SECRET_JSON")
+_CLIENT_SECRET_FILE = os.environ.get(
     "YT_CLIENT_SECRET",
     os.path.expanduser("~/Desktop/client_secret.json"),
 )
-TOKEN_FILE = Path(__file__).parent / "cache" / "token.json"
+
 CACHE_DIR = Path(__file__).parent / "cache"
+TOKEN_FILE = CACHE_DIR / "token.json"
 CACHE_FILE = CACHE_DIR / "dashboard_data.json"
 CACHE_TTL_HOURS = 24
+
+# On Railway the app is behind a TLS-terminating proxy — trust X-Forwarded-Proto
+RAILWAY = os.environ.get("RAILWAY_ENVIRONMENT") is not None
+if RAILWAY:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+else:
+    # Allow OAuth over plain http for local development
+    os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
 SCOPES = [
     "https://www.googleapis.com/auth/youtube.readonly",
     "https://www.googleapis.com/auth/yt-analytics.readonly",
 ]
 
-os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")  # allow http localhost
+
+# ── Credentials file helper ───────────────────────────────────────────────────
+def _client_secret_file():
+    """Return path to a client_secret.json, writing a temp file if loaded from env."""
+    if _CLIENT_SECRET_JSON:
+        tmp = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, prefix="yt_secret_"
+        )
+        tmp.write(_CLIENT_SECRET_JSON)
+        tmp.flush()
+        return tmp.name
+    return _CLIENT_SECRET_FILE
 
 
 # ── Auth helpers ─────────────────────────────────────────────────────────────
@@ -47,6 +72,10 @@ def get_credentials():
 def _save_token(creds):
     TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
     TOKEN_FILE.write_text(creds.to_json())
+
+
+def _redirect_uri():
+    return url_for("auth_callback", _external=True)
 
 
 # ── Cache helpers ─────────────────────────────────────────────────────────────
@@ -105,7 +134,7 @@ def fetch_all_data():
     # 4. Video details (in batches of 50)
     videos = _get_video_details(yt, video_ids)
 
-    # 5. Analytics per video (CTR, AVD, impressions) — batch by 200-day windows
+    # 5. Analytics per video (CTR, AVD, impressions)
     videos = _enrich_with_analytics(yta, channel_id, videos)
 
     # 6. Comments from last 20 videos (sorted by publish date)
@@ -170,7 +199,6 @@ def _get_video_details(yt, video_ids):
                     "likes": int(s.get("likeCount", 0)),
                     "comments": int(s.get("commentCount", 0)),
                     "duration": _parse_duration(cd.get("duration", "PT0S")),
-                    # analytics fields filled in next step
                     "ctr": None,
                     "avd_seconds": None,
                     "impressions": None,
@@ -180,13 +208,9 @@ def _get_video_details(yt, video_ids):
 
 
 def _enrich_with_analytics(yta, channel_id, videos):
-    """Add CTR, AVD, impressions from YouTube Analytics for each video."""
     today = datetime.date.today().isoformat()
-    # Analytics only goes back 2 years; use 730 days
     start = (datetime.date.today() - datetime.timedelta(days=730)).isoformat()
-
     id_map = {v["id"]: v for v in videos}
-
     for vid_id in list(id_map.keys()):
         try:
             resp = yta.reports().query(
@@ -200,11 +224,10 @@ def _enrich_with_analytics(yta, channel_id, videos):
             if rows:
                 row = rows[0]
                 id_map[vid_id]["impressions"] = int(row[0])
-                id_map[vid_id]["ctr"] = round(float(row[1]) * 100, 2)  # as %
+                id_map[vid_id]["ctr"] = round(float(row[1]) * 100, 2)
                 id_map[vid_id]["avd_seconds"] = int(row[2])
         except Exception:
-            pass  # analytics not available for some videos (Shorts, old, etc.)
-
+            pass
     return list(id_map.values())
 
 
@@ -234,7 +257,6 @@ def _get_comments(yt, video_ids):
 
 
 def _flag_outliers(videos):
-    """Flag videos performing significantly above/below average."""
     views_list = [v["views"] for v in videos if v["views"] > 0]
     avd_list = [v["avd_seconds"] for v in videos if v.get("avd_seconds")]
     ctr_list = [v["ctr"] for v in videos if v.get("ctr") is not None]
@@ -269,7 +291,6 @@ def _flag_outliers(videos):
 
 def _generate_insights(overview, videos):
     insights = []
-
     views_list = [v["views"] for v in videos if v["views"] > 0]
     avd_list = [v["avd_seconds"] for v in videos if v.get("avd_seconds")]
     ctr_list = [v["ctr"] for v in videos if v.get("ctr") is not None]
@@ -307,7 +328,6 @@ def _generate_insights(overview, videos):
         })
 
     if views_list and avd_list:
-        # Correlate: high views but low AVD = clickbait risk
         bait = [
             v for v in videos
             if v["views"] > statistics.mean(views_list)
@@ -340,7 +360,6 @@ def _generate_insights(overview, videos):
 
 
 def _parse_duration(iso):
-    """Convert ISO 8601 duration to total seconds."""
     import re
     m = re.match(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso)
     if not m:
@@ -357,10 +376,11 @@ def index():
 
 @app.route("/auth/login")
 def auth_login():
+    secret_file = _client_secret_file()
     flow = Flow.from_client_secrets_file(
-        CREDENTIALS_FILE,
+        secret_file,
         scopes=SCOPES,
-        redirect_uri=url_for("auth_callback", _external=True),
+        redirect_uri=_redirect_uri(),
     )
     auth_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true")
     session["oauth_state"] = state
@@ -369,13 +389,16 @@ def auth_login():
 
 @app.route("/auth/callback")
 def auth_callback():
+    secret_file = _client_secret_file()
     flow = Flow.from_client_secrets_file(
-        CREDENTIALS_FILE,
+        secret_file,
         scopes=SCOPES,
         state=session.get("oauth_state"),
-        redirect_uri=url_for("auth_callback", _external=True),
+        redirect_uri=_redirect_uri(),
     )
-    flow.fetch_token(authorization_response=request.url)
+    # On Railway the callback URL will be https:// but Flask may see http://
+    callback_url = request.url.replace("http://", "https://") if RAILWAY else request.url
+    flow.fetch_token(authorization_response=callback_url)
     _save_token(flow.credentials)
     return redirect(url_for("index"))
 
@@ -411,4 +434,5 @@ def api_logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=not RAILWAY)
