@@ -25,6 +25,11 @@ CHANNEL_HANDLES = [
     "@TheEnkiCodex",
     "@GenesisChamberUS",
     "@TheOriginVaultOfficial",
+    "@20_percent",
+    "@LeaveCurious",
+    "@WildRevivalYT",
+    "@AgricultureFlow",
+    "@treeline_journal",
 ]
 # ─────────────────────────────────────────────────────────────────────────────
 
