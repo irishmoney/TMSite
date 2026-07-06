@@ -19,13 +19,13 @@ REPORT_TITLE = "\U0001f6a2 STS &amp; SC — Daily Channel Report"
 # ADD OR REMOVE CHANNELS HERE — one @handle per line
 # ─────────────────────────────────────────────────────────────────────────────
 CHANNEL_HANDLES = [
+    "@PracticalEngineeringChannel",
+    "@CasualNavigation",
     "@ExhaustTV93",
-    "@simply-explained1",
-    "@LogicMadeSimple100",
     "@TruckTropia",
     "@SimpleConceptsExplained",
-    "@CasualNavigation",
-    "@EngineScope256",
+    "@AviationExplained4you",
+    "@simply-explained1",
 ]
 # ─────────────────────────────────────────────────────────────────────────────
 
