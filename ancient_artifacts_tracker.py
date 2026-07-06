@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Earth Reborn tracker — per-channel daily digest.
+Ancient Artifacts tracker — per-channel daily digest.
 """
 
 import os
@@ -13,20 +13,19 @@ YOUTUBE_API_KEY = os.environ["YOUTUBE_API_KEY"]
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-REPORT_TITLE = "\U0001f30d EARTH REBORN — Daily Channel Report"
+REPORT_TITLE = "\U0001f3db Ancient Artifacts — Daily Channel Report"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ADD OR REMOVE CHANNELS HERE — one @handle per line
 # ─────────────────────────────────────────────────────────────────────────────
 CHANNEL_HANDLES = [
-    "@DailyDiscoveriesOff",
-    "@MakeTechFuture",
-    "@NatureRebuilt",
-    "@20_percent",
-    "@LeaveCurious",
-    "@WildRevivalYT",
-    "@AgricultureFlow",
-    "@treeline_journal",
+    "@TheEnkiCodex",
+    "@GenesisChamberUS",
+    "@TheOriginVaultOfficial",
+    "@thesealedcodex1",
+    "@PorterHarmonUS",
+    "@MegalithicVault",
+    "@BrendaTamayo-g2z",
 ]
 # ─────────────────────────────────────────────────────────────────────────────
 
